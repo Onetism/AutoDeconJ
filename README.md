@@ -43,6 +43,12 @@ the `Fiji.app/plugins` directory of your Fiji/ImageJ installation. Of course,
 `MultiGPU_DeconJ_ImageJ_Plugin-jar-with-dependencies.jar` is also a execution file, you can execute
 directly.
 
+## Test
+There are two test images in `/test/resources`, corresponding to the default parameters in the program,
+the difference between the two images is the axial distance, the number in front of the image name indicates 
+indicates the maximum distance in positive and negative axes, for example, `26_zc1075a-Gal4` means that you
+need change the zmax to 26.0 and the zmin to -26.0. The small one can run on a single 12G GPU, while the large 
+one require 4 GPUs.
 
 ## Adding the dependencies
 
