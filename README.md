@@ -21,7 +21,7 @@ in the `Fiji.app` directory.
 
 Create a local clone of this project by calling
 
-    git clone https://github.com/jcuda/jcuda-imagej-example.git
+    git clone https://github.com/Onetism/MultiGPU_DeconJ.git
     
 
 ## Building the plugin JAR
@@ -37,9 +37,11 @@ project and execute
     
 Note that the resulting JAR file has a name that is different from the 
 default name that Maven would assign to it: In order to properly be recognized 
-as an ImageJ plugin JAR, it is named `JCuda_ImageJ_Example_Plugin.jar`.
-Copy the resulting `/target/JCuda_ImageJ_Example_Plugin.jar` file into 
-the `Fiji.app/plugins` directory of your Fiji/ImageJ installation.
+as an ImageJ plugin JAR, it is named `MultiGPU_DeconJ_ImageJ_Plugin-jar-with-dependencies.jar`.
+Copy the resulting `/target/MultiGPU_DeconJ_ImageJ_Plugin-jar-with-dependencies.jar` file into 
+the `Fiji.app/plugins` directory of your Fiji/ImageJ installation. Of course, 
+`MultiGPU_DeconJ_ImageJ_Plugin-jar-with-dependencies.jar` is also a execution file, you can execute
+directly.
 
 
 ## Adding the dependencies
@@ -66,10 +68,10 @@ manually for the respective Fiji/ImageJ installation.
 After the JAR files for the plugin have been added, it may be used inside 
 ImageJ: Start ImageJ, load an image, and select 
 
-    Plugins > JCuda ImageJ Example > Run JCuda ImageJ Example Plugin...
+    Plugins>multiGPU_DeconJ, "Run Auto_LF_Deconvolution...", Auto_LF_Deconvolution("run")
+    Plugins>multiGPU_DeconJ, "Run ImageRectification...", ImageRectification("run")
     
-from the menu bar. This will execute the CUDA kernel internally, and show
-the resulting image, which is simply an inversion of the original image.
+from the menu bar. 
 
 ---
 
@@ -117,36 +119,6 @@ For your own plugin, you could change it as shown in this example:
     
 **Note:** Due to some constraints of ImageJ, the plugin name must contain 
 an `'_'` underscore character!
-        
-
-### The `JCuda_ImageJ_Example_Plugin.java` file
-
-This file contains the implementation of the plugin functionality. 
-Specifically, it contains a class that implements the ImageJ `PlugInFilter`
-interface, which consists of two methods:
-
-- `public int setup(String arg, ImagePlus imagePlus)`:
-  This method is called once, when the plugin is loaded. It will initialize
-  the JCuda library and load the CUDA kernel function from the 
-  `JCudaImageJExampleKernel.cu` file
-   
-- `public void run(ImageProcessor imageProcessor)`: 
-  This method performs the actual computation. It receives an image and 
-  extracts the pixel data. The pixel data is then copied to the CUDA device.
-  The kernel function is executed and modifies the data. The modified data
-  is then copied back into the image.
-
-For details about these methods and further information about the different
-types of plugins, refer to the 
-[ImageJ Development Documentation](https://imagej.net/Development). 
-
-**Note:** Due to some constraints of ImageJ, the class name must contain an `'_'` underscore character!
-
-### The `JCudaImageJExampleKernel.cu` file
-
-This file contains the actual CUDA kernel code. The file is loaded in the
-`JCuda_ImageJ_Example_Plugin` class, where the kernel is compiled and
-the actual kernel function is initialized.
 
 
 ### The `plugins.config` file
@@ -154,9 +126,10 @@ the actual kernel function is initialized.
 This file basically defines where in the *Plugins* menu of ImageJ the 
 plugin will appear. The relevant entry for the JCuda example plugin is this:
 
-    Plugins>JCuda ImageJ Example, "Run JCuda ImageJ Example Plugin...", JCuda_ImageJ_Example_Plugin("run")
+    Plugins>multiGPU_DeconJ, "Run Auto_LF_Deconvolution...", Auto_LF_Deconvolution("run")
+    Plugins>multiGPU_DeconJ, "Run ImageRectification...", ImageRectification("run")
     
-The first part defines the menu structure. The last part, `JCuda_ImageJ_Example_Plugin`,
+The first part defines the menu structure. The last part, `Auto_LF_Deconvolution`,
 defines the *class name* of the plugin implementation.
 
  
