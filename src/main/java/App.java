@@ -3,12 +3,12 @@
 /*
  * @Author: Onetism
  * @Date: 2020-11-26 18:55:12
- * @LastEditTime: 2021-04-05 17:51:30
- * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2022-08-21 09:48:08
+ * @LastEditors: onetism onetism@163.com
  * @Description: In User Settings Edit
  * @FilePath: \Auto_LF_Deconvolution\src\test.java
  */
-
+import ij.*;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -65,7 +65,7 @@ public class App {
 			}
 		});
 		frame.setVisible(true);
-
+			
 		while(true) {
 			if(imagerectify!=null) {
 				imagerectify.run(null);

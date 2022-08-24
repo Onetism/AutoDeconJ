@@ -2,8 +2,8 @@
 /*
  * @Author: your name
  * @Date: 2021-01-21 11:36:58
- * @LastEditTime: 2021-03-12 01:24:10
- * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2022-08-23 23:19:12
+ * @LastEditors: onetism onetism@163.com
  * @Description: In User Settings Edit
  * @FilePath: \LightFieldMicroscopy_ImageJPlugin\src\Auto_LF_Deconvolution.java
  */
@@ -54,13 +54,16 @@ import jcuda.runtime.JCuda;
 
 import static jcuda.runtime.JCuda.cudaFree;
 import static jcuda.runtime.JCuda.cudaMalloc;
+// import static jcuda.runtime.JCuda.cudaHostGetDevicePointer;
+// import static jcuda.runtime.JCuda.cudaHostAlloc;
+// import static jcuda.runtime.JCuda.cudaHostAllocMapped;
 import static jcuda.runtime.JCuda.cudaMemcpy;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToHost;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyHostToDevice;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToDevice;
 import java.util.Vector;
 
-
+import org.jtransforms.dct.FloatDCT_2D;
 /**
 * This class is used to synchronize threads
 */
@@ -185,12 +188,15 @@ public class Auto_LF_Deconvolution implements PlugIn {
 		// Record the available CUDA label
 		Vector<Integer> avaliable_cuda = new Vector<Integer>();
 
+		Vector<CUcontext> cuda_context = new Vector<CUcontext>();
+
 		// Record the thread for computing psf
 		Vector<Psfcompute_Thread> psfcomput_thread = new Vector<Psfcompute_Thread>();
 
+		// cuInit(0);
 		// Search for available CUDA,expcept for consuming memory more than 400M
 		for(int i = 0; i<deviceCount; i++){
-
+			
 			CUdevice device = new CUdevice();
 			cuDeviceGet(device, i);
 			CUcontext context = new CUcontext();
@@ -201,57 +207,57 @@ public class Auto_LF_Deconvolution implements PlugIn {
 			long free_mem = total[0] - available_mem[0];
 			total_cudamem=total[0];
 			cuCtxDestroy(context);
-			if(free_mem < 1024*1024*400){
+			if(free_mem < total_cudamem/2){
 				avaliable_cuda.add(i);
 			}
 		}
 
-		// Whether P2P is supported between available CUDA
-		for(int i = 0; i< avaliable_cuda.size();i++){
-			int result = JCuda.cudaSetDevice(avaliable_cuda.get(i));
-			for (int j = i+1; j < avaliable_cuda.size(); j++) {
-				int access[] = {0};
-				JCuda.cudaDeviceCanAccessPeer(access, avaliable_cuda.get(i), avaliable_cuda.get(j));
-				if (access[0] == 1) {
-					result = JCuda.cudaDeviceEnablePeerAccess(avaliable_cuda.get(j), 0 );
-					if (result != CUresult.CUDA_SUCCESS){
-						output.append("Peer cannot from GPU"+avaliable_cuda.get(i) +"-> GPU" +avaliable_cuda.get(j)+"\n");
-						output.setCaretPosition(output.getDocument().getLength());
-					}else{
-						output.append("Peer access from GPU"+avaliable_cuda.get(i) +"-> GPU" +avaliable_cuda.get(j)+"\n");
-						output.setCaretPosition(output.getDocument().getLength());
-					}
-					result = JCuda.cudaSetDevice(avaliable_cuda.get(j));
-					if (result != CUresult.CUDA_SUCCESS){
-						output.append("cudaSetDevice erro!\n");
-						output.setCaretPosition(output.getDocument().getLength());
-					}
-					result = JCuda.cudaDeviceEnablePeerAccess(avaliable_cuda.get(i), 0 );
-					if (result != CUresult.CUDA_SUCCESS){
-						output.append("Peer cannot from GPU"+avaliable_cuda.get(j) +"-> GPU" +avaliable_cuda.get(i)+"\n");
-						output.setCaretPosition(output.getDocument().getLength());
-					}else{
-						output.append("Peer access from GPU"+avaliable_cuda.get(j) +"-> GPU" +avaliable_cuda.get(i)+"\n");
-						output.setCaretPosition(output.getDocument().getLength());
-					}
-					result = JCuda.cudaSetDevice(avaliable_cuda.get(i));
-					if (result != CUresult.CUDA_SUCCESS){
-						output.append("cudaSetDevice erro!\n");
-						output.setCaretPosition(output.getDocument().getLength());
-					}
-				}
-			}
-		}
+		// // Whether P2P is supported between available CUDA
+		// for(int i = 0; i< avaliable_cuda.size();i++){
+		// 	int result = JCuda.cudaSetDevice(avaliable_cuda.get(i));
+		// 	for (int j = i+1; j < avaliable_cuda.size(); j++) {
+		// 		int access[] = {0};
+		// 		JCuda.cudaDeviceCanAccessPeer(access, avaliable_cuda.get(i), avaliable_cuda.get(j));
+		// 		if (access[0] == 1) {
+		// 			result = JCuda.cudaDeviceEnablePeerAccess(avaliable_cuda.get(j), 0 );
+		// 			if (result != CUresult.CUDA_SUCCESS){
+		// 				output.append("Peer cannot from GPU"+avaliable_cuda.get(i) +"-> GPU" +avaliable_cuda.get(j)+"\n");
+		// 				output.setCaretPosition(output.getDocument().getLength());
+		// 			}else{
+		// 				output.append("Peer access from GPU"+avaliable_cuda.get(i) +"-> GPU" +avaliable_cuda.get(j)+"\n");
+		// 				output.setCaretPosition(output.getDocument().getLength());
+		// 			}
+		// 			result = JCuda.cudaSetDevice(avaliable_cuda.get(j));
+		// 			if (result != CUresult.CUDA_SUCCESS){
+		// 				output.append("cudaSetDevice erro!\n");
+		// 				output.setCaretPosition(output.getDocument().getLength());
+		// 			}
+		// 			result = JCuda.cudaDeviceEnablePeerAccess(avaliable_cuda.get(i), 0 );
+		// 			if (result != CUresult.CUDA_SUCCESS){
+		// 				output.append("Peer cannot from GPU"+avaliable_cuda.get(j) +"-> GPU" +avaliable_cuda.get(i)+"\n");
+		// 				output.setCaretPosition(output.getDocument().getLength());
+		// 			}else{
+		// 				output.append("Peer access from GPU"+avaliable_cuda.get(j) +"-> GPU" +avaliable_cuda.get(i)+"\n");
+		// 				output.setCaretPosition(output.getDocument().getLength());
+		// 			}
+		// 			result = JCuda.cudaSetDevice(avaliable_cuda.get(i));
+		// 			if (result != CUresult.CUDA_SUCCESS){
+		// 				output.append("cudaSetDevice erro!\n");
+		// 				output.setCaretPosition(output.getDocument().getLength());
+		// 			}
+		// 		}
+		// 	}
+		// }
 
-		// Destroy the cuda context
-		for(int i = 0; i< avaliable_cuda.size();i++){
-			CUdevice device = new CUdevice();
-			cuDeviceGet(device, avaliable_cuda.get(i));
-			CUcontext context = new CUcontext();
-			cuCtxCreate(context, 0, device);
+		// // Destroy the cuda context
+		// for(int i = 0; i< avaliable_cuda.size();i++){
+		// 	CUdevice device = new CUdevice();
+		// 	cuDeviceGet(device, avaliable_cuda.get(i));
+		// 	CUcontext context = new CUcontext();
+		// 	cuCtxCreate(context, 0, device);
 
-			cuCtxDestroy(context);
-		}
+		// 	cuCtxDestroy(context);
+		// }
 		JCuda.setExceptionsEnabled(true);
 
 		boolean usepsfmat = Prefs.get("Auto_LF_Deconvolution.usepsf_from_matlab", false);
@@ -449,20 +455,36 @@ public class Auto_LF_Deconvolution implements PlugIn {
 
 			
 			long require_mem = (long)(temp_result_mem+ht_mem+ht_fft_mem+psf_wave_mem+mlarry_mem+psf_mem)/1024/1024; //11800 is the reserved memory
-			total_cudamem = total_cudamem/1024/1024-3072;
+			total_cudamem = total_cudamem/1024/1024;
 
 			int cudasNeed = (int)Math.ceil((double)require_mem/(double)total_cudamem);
 
-			if(ngpu_num!=0 && ngpu_num>cudasNeed){
-				cudasNeed = ngpu_num;
+			if(ngpu_num!=0 ){
+				if (ngpu_num>=cudasNeed)
+					cudasNeed = ngpu_num;
+				else{
+					Auto_LF_Deconvolution.output.append( cudasNeed +" GPUs are need, but the setting GPUs "+ ngpu_num  + "  is not enough!\n");
+					Auto_LF_Deconvolution.output.setCaretPosition(Auto_LF_Deconvolution.output.getDocument().getLength());		
+					return;			
+				}
 			}
 
 			if(cudasNeed > avaliable_cuda.size()){
-				IJ.showMessage("The number of GPU is not enough!" + "\n");
+				// IJ.showMessage("The number of GPU is not enough!" + "\n");
+				Auto_LF_Deconvolution.output.append( cudasNeed +" GPUs are need, but there are only  "+ avaliable_cuda.size()  + "  in this system!\n");
+				Auto_LF_Deconvolution.output.setCaretPosition(Auto_LF_Deconvolution.output.getDocument().getLength());
 				return;
 			}
 			int numpts_spacing =(int)((double)numpts/cudasNeed+0.5);
 
+			for(int i = 0; i<cudasNeed; i++){
+			
+				CUdevice device = new CUdevice();
+				cuDeviceGet(device, avaliable_cuda.get(i));
+				CUcontext context = new CUcontext();
+				cuCtxCreate(context, 0, device);
+				cuda_context.add(context);
+			}
 			//Thread synchronization Settings
 			Thread_syn.threadnum = cudasNeed;	
 			Thread_syn.totalnum = cudasNeed;	
@@ -485,7 +507,7 @@ public class Auto_LF_Deconvolution implements PlugIn {
 					temp_zmax = zmax;	
 				}
 				
-				Psfcompute_Thread psf_thread =  new Psfcompute_Thread(p3max,outarea,temp_zmin, temp_zmax,avaliable_cuda.get(i));
+				Psfcompute_Thread psf_thread =  new Psfcompute_Thread(p3max,outarea,temp_zmin, temp_zmax,avaliable_cuda.get(i), cuda_context.get(i));
 				psf_thread.start();
 				psfcomput_thread.add(psf_thread);
 			}		
@@ -506,28 +528,29 @@ public class Auto_LF_Deconvolution implements PlugIn {
 			output.append("Compute_psf take " + (float) (endTime - startTime) / 1000 + "s" + "\n");
 			output.setCaretPosition(output.getDocument().getLength());
 		}
-		File file = new File(imagepath);
-		File[] fileList = file.listFiles();
+		// File file = new File(imagepath);
+		// File[] fileList = file.listFiles();
 
-		for(int filenum = 0; filenum < fileList.length;filenum++){
+		// for(int filenum = 0; filenum < fileList.length;filenum++){
 
-			if(fileList[filenum].getName().endsWith(".tiff") == false
-			&& fileList[filenum].getName().endsWith(".tif") == false){
-				continue;
-			}	
-			String filepath = fileList[filenum].getAbsoluteFile().getName();
-			String filename = null;
-			if(fileList[filenum].getName().endsWith(".tiff") == true){
-				filename = filepath.substring(0, filepath.length()-5);
-			}
-			else{
-				filename = filepath.substring(0, filepath.length()-4);
-			}
-			if (filename.equals("zc1075a-Gal4") != true)
-				continue;
-			ImagePlus imp_Image = IJ.openImage(fileList[filenum].getPath());
+			// if(fileList[filenum].getName().endsWith(".tiff") == false
+			// && fileList[filenum].getName().endsWith(".tif") == false){
+			// 	continue;
+			// }	
+			// String filepath = fileList[filenum].getAbsoluteFile().getName();
+			// String filename = null;
+			// if(fileList[filenum].getName().endsWith(".tiff") == true){
+			// 	filename = filepath.substring(0, filepath.length()-5);
+			// }
+			// else{
+			// 	filename = filepath.substring(0, filepath.length()-4);
+			// }
+			
+			// ImagePlus imp_Image = IJ.openImage(fileList[filenum].getPath());
+			ImagePlus imp_Image = IJ.openImage(imagepath);
 
-			output.append(filenum+" | "+fileList.length +"  "+"Read " + filename+ " light filed data!"+ "\n");
+			output.append("Read light filed data : "+ imagepath + "\n");
+			// output.append(filenum+" | "+fileList.length +"  "+"Read " + filename+ " light filed data!"+ "\n");
 			output.setCaretPosition(output.getDocument().getLength());
 
 			ImageProcessor ip_Image = imp_Image.getProcessor();
@@ -564,7 +587,7 @@ public class Auto_LF_Deconvolution implements PlugIn {
 			Thread_syn.totalnum = psfcomput_thread.size();
 			Thread_syn.max_value = new float[psfcomput_thread.size()];
 
-			AutoDconThread autodeconJ = new AutoDconThread(psfcomput_thread,image,new int[]{bh,bw},psfcomput_thread.size());
+			AutoDconThread autodeconJ = new AutoDconThread(psfcomput_thread,image,new int[]{bh,bw},psfcomput_thread.size(), cuda_context);
 
 			Vector<Thread> deconJvector = new Vector<Thread>();
 			for(int i = 0; i< psfcomput_thread.size();i++){
@@ -579,8 +602,12 @@ public class Auto_LF_Deconvolution implements PlugIn {
 					e.printStackTrace();
 				}
 			}
+			// Destroy the cuda context
+			for(int i = 0; i< cuda_context.size();i++){
+				cuCtxDestroy(cuda_context.get(i));
+			}			
 			// int wait = 0;
-		}
+		// }
 
 
 		output.append("Complete! " + "\n");
@@ -597,6 +624,8 @@ public class Auto_LF_Deconvolution implements PlugIn {
 		 * Thread lock: ensure that data can only be accessed by one thread at a time
 		 */	
 		// private final Object lock = new Object();
+
+		private float[][] host_forward_resultP;
 
 		/**
 		 * Record the results of the forward projection for each thread
@@ -631,7 +660,7 @@ public class Auto_LF_Deconvolution implements PlugIn {
 		/**
 		 * the psfsupportdiameter for iamge quality
 		 */			
-		// private int npfsupportdiameter;	
+		private double npfsupportdiameter;	
 
 		/**
 		 * the max iteration for deconvolution
@@ -640,8 +669,10 @@ public class Auto_LF_Deconvolution implements PlugIn {
 
 		boolean  findbest;
 
+		private Vector<CUcontext> cuda_context;
 
-		AutoDconThread(Vector<Psfcompute_Thread> thread,float[] image,int[] size,int num ){
+
+		AutoDconThread(Vector<Psfcompute_Thread> thread,float[] image,int[] size,int num, Vector<CUcontext> context){
 			psfH = thread;
 			inputImage = image;
 			image_size = size;
@@ -649,8 +680,11 @@ public class Auto_LF_Deconvolution implements PlugIn {
 			findbest = false;
 			result_xguessP = new Pointer[threadNum];
 			forward_resultP = new Pointer[threadNum];
-			// npfsupportdiameter = (int) Prefs.get("Auto_LF_Deconvolution.npsfsupportdiameter", 5);
+			
+			npfsupportdiameter = Prefs.get("Auto_LF_Deconvolution.npsfsupportdiameter", 11.9);
 			maxIter = (int) Prefs.get("Auto_LF_Deconvolution.nIter", 20);
+			host_forward_resultP = new float[num][size[0]*size[1]];
+			cuda_context = context;
 		}
 
 		@Override
@@ -663,7 +697,10 @@ public class Auto_LF_Deconvolution implements PlugIn {
 			synchronized(this){
 				threadNum--;
 				current_thread = threadNum;
-				JCuda.cudaSetDevice(psfH.get(current_thread).device_num);
+				// JCuda.cudaSetDevice(psfH.get(current_thread).device_num);
+				// CUdevice device = new CUdevice();
+				// cuDeviceGet(device, psfH.get(current_thread).device_num);
+				cuCtxSetCurrent(cuda_context.get(current_thread));
 			}
 
 			int []size = psfH.get(current_thread).psf_pointer_result.size;
@@ -692,6 +729,10 @@ public class Auto_LF_Deconvolution implements PlugIn {
 			cudaMalloc(Htf, back_size*Sizeof.FLOAT);
 
 			forward_resultP[current_thread] = new Pointer();
+			// cudaHostAlloc(forward_resultP[current_thread], forward_size*Sizeof.FLOAT, cudaHostAllocMapped);
+
+			// Pointer device_forward_resultP = new Pointer();
+			// cudaHostGetDevicePointer(device_forward_resultP, forward_resultP[current_thread], 0);
 			cudaMalloc(forward_resultP[current_thread], forward_size*Sizeof.FLOAT);
 
 			backprojectionFFT(psfH.get(current_thread).Ht_pointer,device_inputimage,Htf,image_size,size,kernelLauncher);
@@ -706,55 +747,81 @@ public class Auto_LF_Deconvolution implements PlugIn {
 			// double[] tempback = new double[back_size];
 			// cudaMemcpy(Pointer.to(tempback), device_xguess, back_size*Sizeof.FLOAT, cudaMemcpyDeviceToHost);
 
+			// Pointer host_hxguess = new Pointer();
+			// cudaHostAlloc(host_hxguess, forward_size*Sizeof.FLOAT, cudaHostAllocMapped);
+
 			Pointer device_hxguess = new Pointer();
 			cudaMalloc(device_hxguess, forward_size*Sizeof.FLOAT);
+			// cudaHostGetDevicePointer(device_hxguess, host_hxguess, 0);
 
 			Pointer device_hxguessback = new Pointer();
 			cudaMalloc(device_hxguessback, back_size*Sizeof.FLOAT);
 
 			ImagePlus imageOutput = null;
 			ImageStack stackOutput = null;
-			// ImagePlus bestOutput = null;
 			int output_w = image_size[1] - 0 * size[2];
 			int output_h = image_size[0] - 0 * size[2];
 
-			// DCTEntropy dct_calculate = new DCTEntropy(output_w, output_h, xguess.clone());
-			// float[][] dct_value = new float[size[4]][maxIter];
-			// int[] find_max_value = new int[] { 0, 0 };
-			// boolean realfindbest = false;
+			
+			double[] dct_value = new double[maxIter];
 
-			// DecimalFormat df = new DecimalFormat("#.0000");
+			DecimalFormat df = new DecimalFormat("#.0000");
 			long startTime = 0, endTime = 0;
 			String savepath = Prefs.get("Auto_LF_Deconvolution.savePath", null);
 			boolean perstore = Prefs.get("Auto_LF_Deconvolution.storperiter", false);
-			
+			String outputName = Prefs.get("Auto_LF_Deconvolution.outputName", "Iter");
+			boolean is_Showper_result = Prefs.get("Auto_LF_Deconvolution.is_Showper_result", false);
+
 			Pointer tempadd = new Pointer();
 			cudaMalloc(tempadd, image_size[0]*image_size[1]*Sizeof.FLOAT);
-			
-			for(int iter =0; iter < maxIter; iter++){
+			int resultSize =  (int) Math.ceil((double) ((long)image_size[0]*image_size[1]*size[4]) / 1024);
 
+			Pointer tempresult = new Pointer();
+			cudaMalloc(tempresult, resultSize*Sizeof.FLOAT);
+
+			Pointer device_max = new Pointer();
+			cudaMalloc(device_max, Sizeof.FLOAT);
+
+			Pointer blocknum = new Pointer();
+			cudaMalloc(blocknum, Sizeof.INT);
+
+			Pointer temp_forward_resultP = new Pointer();
+			cudaMalloc(temp_forward_resultP, forward_size*Sizeof.FLOAT);
+
+
+			for(int iter =0; iter < maxIter; iter++){
+				if (findbest)
+					break;
 				if(current_thread == 0)
 					startTime = System.currentTimeMillis();
 
 				 forwardprojectionFFT(psfH.get(current_thread).psf_pointer_result.pointer,
 				 			result_xguessP[current_thread],forward_resultP[current_thread],image_size,size,kernelLauncher);
-
+				cudaMemcpy(Pointer.to(host_forward_resultP[current_thread]), forward_resultP[current_thread], forward_size*Sizeof.FLOAT, cudaMemcpyDeviceToHost);
 				synchronized(Thread_syn.lock){
-					Thread_syn.threadnum--;														
+					Thread_syn.threadnum--;
 				}
 
 				//Thread synchronization, waiting for all threads to run here
 				while(true){
 					if(Thread_syn.threadnum == 0){
 						break;
-					}	
+					}
+					if(findbest){
+						synchronized(Thread_syn.lock){
+							Thread_syn.threadnum = Thread_syn.totalnum;
+							break;
+						}
+					}
+						
 					// try {
 					// 	Thread.sleep(20);
 					// } catch (InterruptedException e) {
 					// 	e.printStackTrace();
 					// }	
 				}
-				
+				if(Thread_syn.threadnum == Thread_syn.totalnum)
+					break;
 				// double[] tempv = new double[forward_size];
 				// cudaMemcpy(Pointer.to(tempv), forward_resultP[current_thread], forward_size*Sizeof.FLOAT, cudaMemcpyDeviceToHost);
 		
@@ -765,9 +832,14 @@ public class Auto_LF_Deconvolution implements PlugIn {
 				kernelLauncher[4].call(forward_resultP[current_thread],device_hxguess,tempadd,image_size[0],image_size[1],0);
 
 				//Sum the forward projections of each thread
+				// Pointer temp_forward_resultP = new Pointer();
+				// cudaMalloc(temp_forward_resultP, forward_size*Sizeof.FLOAT);
+				// cudaHostGetDevicePointer(temp_forward_resultP, forward_resultP[i], 0);
 				for(int i = 0;i< psfH.size() ; i++){
-					kernelLauncher[4].call(forward_resultP[i],device_hxguess,tempadd,image_size[0],image_size[1],1);				
+					cudaMemcpy(temp_forward_resultP, Pointer.to(host_forward_resultP[i]), forward_size*Sizeof.FLOAT, cudaMemcpyHostToDevice);
+					kernelLauncher[4].call(temp_forward_resultP,device_hxguess,tempadd,image_size[0],image_size[1],1);				
 				}
+				
 				float[] tempf = new float[forward_size];
 				cudaMemcpy(Pointer.to(tempf), device_hxguess, forward_size*Sizeof.FLOAT, cudaMemcpyDeviceToHost);
 				// try {
@@ -794,14 +866,14 @@ public class Auto_LF_Deconvolution implements PlugIn {
 				
 				gridSize =  (int) Math.ceil((double) ((long)image_size[0]*image_size[1]*size[4]) / blockSize);
 
-				Pointer tempresult = new Pointer();
-				cudaMalloc(tempresult, gridSize*Sizeof.FLOAT);
+				// Pointer tempresult = new Pointer();
+				// cudaMalloc(tempresult, gridSize*Sizeof.FLOAT);
 
-				Pointer device_max = new Pointer();
-				cudaMalloc(device_max, Sizeof.FLOAT);
+				// Pointer device_max = new Pointer();
+				// cudaMalloc(device_max, Sizeof.FLOAT);
 
-				Pointer blocknum = new Pointer();
-				cudaMalloc(blocknum, Sizeof.INT);
+				// Pointer blocknum = new Pointer();
+				// cudaMalloc(blocknum, Sizeof.INT);
 				cudaMemcpy(blocknum, Pointer.to(new int[]{0}), Sizeof.INT, cudaMemcpyHostToDevice);
 				
 				kernelLauncher[5].setGridSize(gridSize, 1);
@@ -814,9 +886,7 @@ public class Auto_LF_Deconvolution implements PlugIn {
 				float result[] = {0};
 				cudaMemcpy(Pointer.to(result),device_max, Sizeof.FLOAT, cudaMemcpyDeviceToHost);
 
-				cudaFree(device_max);
-				cudaFree(tempresult);
-				cudaFree(blocknum);
+
 				Thread_syn.max_value[current_thread] = result[0];
 
 				kernelLauncher[6].setGridSize(gridSize, 1);
@@ -830,6 +900,7 @@ public class Auto_LF_Deconvolution implements PlugIn {
 					if(Thread_syn.threadnum == Thread_syn.totalnum){
 						break;
 					}
+
 					// try {
 					// 	Thread.sleep(20);
 					// } catch (InterruptedException e) {
@@ -850,7 +921,6 @@ public class Auto_LF_Deconvolution implements PlugIn {
 					}
 				}	
 
-				long starttime = System.currentTimeMillis();
 				if(current_thread == 0){
 					float[] tempxguess = null;
 					int offset = 0;
@@ -861,71 +931,70 @@ public class Auto_LF_Deconvolution implements PlugIn {
 						System.arraycopy(tempxguess, 0, xguess, offset, tempxguess.length);
 						offset += tempxguess.length;
 					}	
-					long endtime = System.currentTimeMillis();
-					Auto_LF_Deconvolution.output.append("cudaMemcpy take " + (float) (endtime - starttime) / 1000+ "s " + "\n");
+				
+					// Auto_LF_Deconvolution.output.append("cudaMemcpy take " + (float) (endtime - starttime) / 1000+ "s " + "\n");
 					stackOutput = new ImageStack(output_w, output_h);
+					ImageStack fstackOutput = new ImageStack(output_w, output_h);
+
 					for (int z = 0; z < size_H5; z++) {
 						ImageProcessor ip = new ShortProcessor(output_w, output_h);
+						ImageProcessor fip = new FloatProcessor(output_w, output_h);
 						short[] px = (short[]) ip.getPixels();
-						float[] tempx = new float[output_w * output_h];
+						float[] fpx = (float[]) fip.getPixels();
 						for (int i = 0; i < output_h; i++) {
 							for (int j = 0; j < output_w; j++) {
-								tempx[i * output_w + j] = (xguess[z*image_size[0]*image_size[1]+(i+0*size[2])* image_size[1]+j + 0 * size[2]]
-										/ max_xguess * 65535);
-								px[i * output_w + j] = (short) (xguess[z*image_size[0]* image_size[1]+(i+0*size[2])*image_size[1]+j+0 * size[2]]
-										/ max_xguess * 65535);
+								fpx[i * output_w + j] = (xguess[z*image_size[0]*image_size[1]+(i+0*size[2])* image_size[1]+j + 0 * size[2]]
+										/ max_xguess );
+								px[i * output_w + j] = (short)(fpx[i * output_w + j]*65535);
+								
+								fpx[i * output_w + j] = fpx[i * output_w + j]*128;
 							}
 						}
 						ip.setMinAndMax(0, 0);
 						stackOutput.addSlice(null, ip);
-	
-						// dct_calculate.copyFrom(output_w, output_h, tempx);
-						// dct_value[z][iter] = dct_calculate.compute(npfsupportdiameter);
-						// if (iter > 0) {
-						// 	float erro = dct_value[z][iter] - dct_value[z][iter - 1];
-						// 	if ((erro < 1e-10) && (0 == find_max_value[1])) {
-						// 		// bestOutput = imageOutput;
-		
-						// 		find_max_value[0] = z;
-						// 		find_max_value[1] = iter ;
-						// 		// break;
-						// 	}
-						// 	if ((0 != find_max_value[1]) && (erro > 1e-10) && (find_max_value[0] == z)) {
-						// 		find_max_value[0] = 0;
-						// 		find_max_value[1] = 0;
-						// 		// bestOutput = null;
-		
-						// 	}
-						// 	if ((0 != find_max_value[1]) && (iter - find_max_value[1] > 4)) {
-						// 		realfindbest = true;
-						// 		findbest = true;
-						// 		break;
-		
-						// 	}
-						// }
-	
+						fstackOutput.addSlice(null, fip);
 					}
-	
-					// if (realfindbest) {
-			
-					// 	if(findbest == true){
-					// 		Auto_LF_Deconvolution.output.append( "The result best at " + find_max_value[1] + "\n");
-					// 		Auto_LF_Deconvolution.output.setCaretPosition(Auto_LF_Deconvolution.output.getDocument().getLength());
-					// 	}
-					// 	break;
-					// 	// if (perstore == false) {
-					// 	// 	IJ.saveAs(bestOutput, "tif", savepath + "/"+"From"+df.format(psfH.get(current_thread).dzmin*1e6)+
-					// 	// 		"to"+df.format(psfH.get(current_thread).dzmax*1e6) + "Iter_" +String.valueOf(find_max_value[1]));
-					// 	// 	break;
-					// 	// }
-					// }
-					imageOutput = new ImagePlus("Iter" + "_" + String.valueOf(iter+1), stackOutput);
+
+					imageOutput = new ImagePlus(outputName + "_" + String.valueOf(iter+1), stackOutput);
+					if(is_Showper_result)
+						imageOutput.show();
 					if (perstore){
-						IJ.saveAs(imageOutput, "tif", savepath + "/" + "Iter_" + String.valueOf(iter+1));
+						IJ.saveAs(imageOutput, "tif", savepath + "/" + String.valueOf(iter+1) + "_" + outputName);
 					}
-				}	
+					else{
+						ZProjector z_projector = new ZProjector();
+						ImagePlus maxZ_projection = z_projector.run(new ImagePlus("",fstackOutput), "max");
+						ImageStack zTemp = maxZ_projection.getStack();
+						float[] fz_pixels = (float[]) zTemp.getProcessor(1).getPixels();
+						double[] dz_pixels = new double[output_w*output_h];
+						for(int i = 0 ; i < output_h; i++){
+							for(int j = 0; j < output_w; j++){
+								dz_pixels[i * output_w + j] = fz_pixels[i * output_w + j];
+							}
+						}
 	
+						DCTEntropy dct_calculate = new DCTEntropy(output_w, output_h, dz_pixels.clone());
+						dct_value[iter] = dct_calculate.compute((float)npfsupportdiameter);
+						if(iter != 0 && dct_value[iter] - dct_value[iter-1] < 0){
+							synchronized(Thread_syn.lock){
+								findbest = true;
+								Thread_syn.threadnum = Thread_syn.totalnum;
+							}
+							Auto_LF_Deconvolution.output.append( "The result best at " + (iter) + "\n");
+							Auto_LF_Deconvolution.output.setCaretPosition(Auto_LF_Deconvolution.output.getDocument().getLength());	
+
+							IJ.saveAs(imageOutput, "tif", savepath + "/" + String.valueOf(iter+1) +  "_" + outputName);
+							break;
+						}
+					}
+
+				}
+
 			}
+			cudaFree(temp_forward_resultP);
+			cudaFree(device_max);
+			cudaFree(tempresult);
+			cudaFree(blocknum);
 			xguess = null;
 			return;	
 		}
@@ -1146,11 +1215,11 @@ public class Auto_LF_Deconvolution implements PlugIn {
 			public void actionPerformed(ActionEvent e) {
 				JFileChooser chooser = new JFileChooser();
 				chooser.setDialogTitle("Choose a source image");
-				chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 				int result = chooser.showOpenDialog(null);
 				if (result == JFileChooser.APPROVE_OPTION) {
 					panel01_jLabel1_text.setText(chooser.getSelectedFile().getAbsolutePath());
-					// Prefs.set("Auto_LF_Deconvolution.imageName", chooser.getSelectedFile().getName());
+					Prefs.set("Auto_LF_Deconvolution.imageName", chooser.getSelectedFile().getName());
 					Prefs.set("Auto_LF_Deconvolution.imagePath", chooser.getSelectedFile().getAbsolutePath());
 				}
 			}
@@ -1287,7 +1356,7 @@ public class Auto_LF_Deconvolution implements PlugIn {
 	
 		JLabel panel01_jLabel4 = new JLabel();
 		panel01_jLabel4.setFont(new java.awt.Font(fonts, 0, fontsize)); // NOI18N
-		panel01_jLabel4.setText("GPU");
+		panel01_jLabel4.setText("GPUs");
 		panel01_jLabel4.setBounds(800, 20, 50, 25);
 		panel01.add(panel01_jLabel4);
 		JTextField panel01_jLabel5_text = new JTextField();
@@ -1526,7 +1595,7 @@ public class Auto_LF_Deconvolution implements PlugIn {
 				String outputName = panel01_jLabel3_text.getText();
 				double dna = Double.parseDouble(panel02_jLabel1_text.getText());
 				double dM = Double.parseDouble(panel02_jLabel2_text.getText());
-				int dMLPitch = Integer.parseInt(panel02_jLabel3_text.getText());
+				double dMLPitch = Double.parseDouble(panel02_jLabel3_text.getText());
 				int nfml = Integer.parseInt(panel02_jLabel4_text.getText());
 				int nlambda = Integer.parseInt(panel02_jLabel5_text.getText());
 				double dn = Double.parseDouble(panel02_jLabel6_text.getText());
@@ -1536,7 +1605,7 @@ public class Auto_LF_Deconvolution implements PlugIn {
 				double dzmax = Double.parseDouble(panel02_jLabel11_text.getText());
 				double dzspacing = Double.parseDouble(panel02_jLabel9_text.getText());
 				int nIter = Integer.parseInt(panel02_jLabel12_text.getText());
-				int npfsupportdiameter = Integer.parseInt(panel02_jLabel13_text.getText());
+				double npfsupportdiameter = Double.parseDouble(panel02_jLabel13_text.getText());
 				int ngpu_num = Integer.parseInt(panel01_jLabel5_text.getText());
 				String savepath = panel01_jLabel2_text.getText();
 				String imagepath = panel01_jLabel1_text.getText();
@@ -1588,13 +1657,13 @@ public class Auto_LF_Deconvolution implements PlugIn {
 	
 		String outputName = Prefs.get("Auto_LF_Deconvolution.outputName", "Iter");
 		panel01_jLabel3_text.setText(outputName);
-		int ngpu_num = (int) Prefs.get("Auto_LF_Deconvolution.ngpu_num", 0);
+		int ngpu_num = (int) Prefs.get("Auto_LF_Deconvolution.ngpu_num", 2);
 		panel01_jLabel5_text.setText(String.valueOf(ngpu_num));
-		double dna = Prefs.get("Auto_LF_Deconvolution.dna", 0.95);
+		double dna = Prefs.get("Auto_LF_Deconvolution.dna", 0.8);
 		panel02_jLabel1_text.setText(String.valueOf(dna));
 		double dM = Prefs.get("Auto_LF_Deconvolution.dM", 40);
 		panel02_jLabel2_text.setText(String.valueOf(dM));
-		int dMLPitch = (int) Prefs.get("Auto_LF_Deconvolution.dMLPitch", 150);
+		double dMLPitch = Prefs.get("Auto_LF_Deconvolution.dMLPitch", 150);
 		panel02_jLabel3_text.setText(String.valueOf(dMLPitch));
 		int nfml = (int) Prefs.get("Auto_LF_Deconvolution.nfml", 3000);
 		panel02_jLabel4_text.setText(String.valueOf(nfml));
@@ -1608,17 +1677,17 @@ public class Auto_LF_Deconvolution implements PlugIn {
 		panel02_jLabel8_text.setText(String.valueOf(nNnum));
 		double dzmin = Prefs.get("Auto_LF_Deconvolution.dzmin", -26.0);
 		panel02_jLabel10_text.setText(String.valueOf(dzmin));
-		double dzmax = Prefs.get("Auto_LF_Deconvolution.dzmax", 26.0);
+		double dzmax = Prefs.get("Auto_LF_Deconvolution.dzmax", 0.0);
 		panel02_jLabel11_text.setText(String.valueOf(dzmax));
-		double dzspacing = Prefs.get("Auto_LF_Deconvolution.dzspacing", 2.0);
+		double dzspacing = Prefs.get("Auto_LF_Deconvolution.dzspacing", 2);
 		panel02_jLabel9_text.setText(String.valueOf(dzspacing));
-		int nIter = (int) Prefs.get("Auto_LF_Deconvolution.nIter", 20);
+		int nIter = (int) Prefs.get("Auto_LF_Deconvolution.nIter", 4);
 		panel02_jLabel12_text.setText(String.valueOf(nIter));
-		int npfsupportdiameter = (int) Prefs.get("Auto_LF_Deconvolution.npsfsupportdiameter", 5);
+		double npfsupportdiameter = Prefs.get("Auto_LF_Deconvolution.npsfsupportdiameter", 11.9);
 		panel02_jLabel13_text.setText(String.valueOf(npfsupportdiameter));
-		String savepath = Prefs.get("Auto_LF_Deconvolution.savePath", "/media/MyFile2/scq/Gal4_upsample/AutoDeconJ");
+		String savepath = Prefs.get("Auto_LF_Deconvolution.savePath", "/data/liutianqiang/matlab_Decon/MCF10A");
 		panel01_jLabel2_text.setText(savepath);
-		String imagepath = Prefs.get("Auto_LF_Deconvolution.imagePath", "/media/MyFile2/scq/Gal4_upsample/lightfield");
+		String imagepath = Prefs.get("Auto_LF_Deconvolution.imagePath", "/data/liutianqiang/MultiGPU_DeconJ_v5");
 		panel01_jLabel1_text.setText(imagepath);
 		String titleOut = Prefs.get("Auto_LF_Deconvolution.outputName", "Iter");
 		panel01_jLabel3_text.setText(titleOut);
@@ -1762,12 +1831,15 @@ class Psfcompute_Thread extends Thread{
 	*/		
 	Pointer Ht_pointer;
 
-	Psfcompute_Thread(double pmax,int out,double zmin,double zmax,int device){
+	CUcontext cuda_context;
+
+	Psfcompute_Thread(double pmax,int out,double zmin,double zmax,int device, CUcontext context){
 		p3max = pmax;
 		outarea = out;
 		dzmin = zmin;
 		dzmax = zmax;
 		device_num = device;
+		cuda_context = context;
 	}
 
 	@Override
@@ -1775,7 +1847,10 @@ class Psfcompute_Thread extends Thread{
 		DecimalFormat df = new DecimalFormat("#.0000");
 		// String savepath = Prefs.get("Auto_LF_Deconvolution.savePath", null);
 		KernelLauncher[] kernelLauncher = new KernelLauncher[10];
-		JCuda.cudaSetDevice(device_num);
+		// JCuda.cudaSetDevice(device_num);
+		// CUdevice device = new CUdevice();
+		// cuDeviceGet(device, device_num);
+		cuCtxSetCurrent(cuda_context);
 		kernelLauncher[0] = Kernelsetup.cudaFilesetup("convolutionKernel.ptx", "convolutionKernel");
 		kernelLauncher[1] = Kernelsetup.cudaFilesetup("forcomputeKernel.ptx", "forcomputeKernel");
 		kernelLauncher[2] = Kernelsetup.cudaFilesetup("multiply.ptx", "multiply");
@@ -1801,7 +1876,7 @@ class Psfcompute_Thread extends Thread{
 				break;
 			}	
 			try {
-				sleep(20);
+				sleep(1);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}			
@@ -1857,7 +1932,7 @@ class Psfcompute_Thread extends Thread{
 			}
 				
 			try {
-				sleep(20);
+				sleep(50);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}	

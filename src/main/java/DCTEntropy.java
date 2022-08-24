@@ -1,23 +1,23 @@
 
 
-import edu.emory.mathcs.jtransforms.dct.FloatDCT_2D;
+import org.jtransforms.dct.DoubleDCT_2D;
 
 public class DCTEntropy {
 	
 	protected final int mWidth;
 	protected final int mHeight;
-	protected final float[] array;
+	protected final double[] array;
 	
 	protected DCTEntropy()
 	{
-		array = new float[0];
+		array = new double[0];
 		mWidth = 0;
 		mHeight = 0;
 	}
 	
 	public DCTEntropy(  final int pWidth,
 						final int pHeight,
-						final float[] pArray)
+						final double[] pArray)
 	{
 		super();
 		array = pArray;
@@ -26,7 +26,7 @@ public class DCTEntropy {
 	}
 	public boolean copyFrom(final int pWidth,
 							final int pHeight,
-							final float[] pArray)
+							final double[] pArray)
 	{
 		if (mWidth == pWidth && mHeight == pHeight)
 		{
@@ -44,32 +44,32 @@ public class DCTEntropy {
 
 	}
 	
-	public final float normL2()
+	public final double normL2()
 	{
 		final int length = array.length;
-		final float[] marray = array;
-		float norm = 0;
+		final double[] marray = array;
+		double norm = 0;
 		for (int i = 0; i < length; i++)
 		{
-			final float value = marray[i];
+			final double value = marray[i];
 			norm += value * value;
 		}
-		norm = (float)Math.sqrt(norm);
+		norm = (double)Math.sqrt(norm);
 		return norm;
 	}	
 	
-	public final float normalizeNormL2()
+	public final double normalizeNormL2()
 	{
-		final float norm = normL2();
+		final double norm = normL2();
 		if (norm != 0)
 		{
-			final float invnorm = 1 / norm;
+			final double invnorm = 1 / norm;
 
 			final int length = array.length;
-			final float[] marray = array;
+			final double[] marray = array;
 			for (int i = 0; i < length; i++)
 			{
-				final float value = marray[i];
+				final double value = marray[i];
 				marray[i] = value * invnorm;
 			}
 		}
@@ -78,18 +78,18 @@ public class DCTEntropy {
 	
 	public final void dctforward()
 	{
-		final FloatDCT_2D dct = new FloatDCT_2D(mHeight, mWidth);
-		dct.forward(array,false);
+		final DoubleDCT_2D dct = new DoubleDCT_2D(mHeight, mWidth);
+		dct.forward(array,true);
 	}	
 	
-	public final float entropyShannonSubTriangle(	final int xl,
+	public final double entropyShannonSubTriangle(	final int xl,
 													final int yl,
 													final int xh,
 													final int yh)
 	{
 		final int width = mWidth;
-		final float[] marray = array;
-		float entropy = 0;
+		final double[] marray = array;
+		double entropy = 0;
 		for (int y = yl; y < yh; y++)
 		{
 			final int yi = y * width;
@@ -97,7 +97,7 @@ public class DCTEntropy {
 			for (int x = xl; x < xend; x++)
 			{
 				final int i = yi + x;
-				final float value = marray[i];
+				final double value = marray[i];
 				if (value > 0)
 				{
 					entropy += value * Math.log(value);
@@ -114,13 +114,13 @@ public class DCTEntropy {
 		return entropy;
 	}
 	
-	public final float compute(final float pPSFSupportDiameter) 
+	public final double compute(final double pPSFSupportDiameter) 
 	{
 		dctforward();
 		normalizeNormL2();
-		final int lOTFSupportX = (int) (mWidth / pPSFSupportDiameter);
-		final int lOTFSupportY = (int) (mHeight / pPSFSupportDiameter);		
-		final float dEntropy = entropyShannonSubTriangle(  0,
+		final int lOTFSupportX = (int) (mWidth / pPSFSupportDiameter)+1;
+		final int lOTFSupportY = (int) (mHeight / pPSFSupportDiameter)+1;		
+		final double dEntropy = entropyShannonSubTriangle(  0,
 															0,
 															lOTFSupportX,
 															lOTFSupportY);

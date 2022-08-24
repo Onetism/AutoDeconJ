@@ -1,4 +1,4 @@
-# MultiGPU_DeconJ
+# AutoDeconJ
 
 A basic example project for a simple ImageJ plugin that uses MultiGPU.
 
@@ -21,8 +21,20 @@ in the `Fiji.app` directory.
 
 Create a local clone of this project by calling
 
-    git clone https://github.com/Onetism/MultiGPU_DeconJ.git
+    git clone https://github.com/Onetism/AutoDeconJ.git
     
+
+## Build PTX
+AutoDeconJ requires the NVIDIA cards support by CUDA8.0 or later. See https://developer.nvidia.com for more details about
+CUDA. Please make sure that CUDA is properly installed and the path enviroment is configured correctly.
+In order to build the ptx file for java corresponding to the version of CUDA, change into the root directory of the 
+project and execute
+
+On linux
+    ./build_cuda.sh
+
+On Windows
+    ./build_cuda.bat
 
 ## Building the plugin JAR
 
@@ -37,18 +49,17 @@ project and execute
     
 Note that the resulting JAR file has a name that is different from the 
 default name that Maven would assign to it: In order to properly be recognized 
-as an ImageJ plugin JAR, it is named `MultiGPU_DeconJ_ImageJ_Plugin-jar-with-dependencies.jar`.
-Copy the resulting `/target/MultiGPU_DeconJ_ImageJ_Plugin-jar-with-dependencies.jar` file into 
+as an ImageJ plugin JAR, it is named `AutoDeconJ_Plugin-jar-with-dependencies.jar`.
+Copy the resulting `/target/AutoDeconJ_Plugin-jar-with-dependencies.jar` file into 
 the `Fiji.app/plugins` directory of your Fiji/ImageJ installation. Of course, 
-`MultiGPU_DeconJ_ImageJ_Plugin-jar-with-dependencies.jar` is also a execution file, you can execute
+`AutoDeconJ_Plugin-jar-with-dependencies.jar` is also a execution file, you can execute
 directly.
 
 ## Test
-There are two test images in `/test/resources`, corresponding to the default parameters in the program,
-the difference between the two images is the axial distance, the number in front of the image name indicates 
-indicates the maximum distance in positive and negative axes, for example, `26_zc1075a-Gal4` means that you
-need change the zmax to 26.0 and the zmin to -26.0. The small one can run on a single 12G GPU, while the large 
-one require 4 GPUs.
+There is a test images in `/test/resources`, corresponding to the default parameters in the program: 
+objective magnification 40, NA 0.8, microlens pitch size 150 um, microlens focal length 3000um, wavelength 520um, 
+n 1.0, OSR 3, Nnum 15, z-spacing 2um, z-max 0um, and z-min -26um.
+
 
 ## Adding the dependencies
 
@@ -74,8 +85,8 @@ manually for the respective Fiji/ImageJ installation.
 After the JAR files for the plugin have been added, it may be used inside 
 ImageJ: Start ImageJ, load an image, and select 
 
-    Plugins>multiGPU_DeconJ, "Run Auto_LF_Deconvolution...", Auto_LF_Deconvolution("run")
-    Plugins>multiGPU_DeconJ, "Run ImageRectification...", ImageRectification("run")
+    Plugins>AutoDeconJ, "Run Auto_LF_Deconvolution...", Auto_LF_Deconvolution("run")
+    Plugins>AutoDeconJ, "Run ImageRectification...", ImageRectification("run")
     
 from the menu bar. 
 
@@ -129,15 +140,11 @@ an `'_'` underscore character!
 
 ### The `plugins.config` file
 
-This file basically defines where in the *Plugins* menu of ImageJ the 
+This file `./src/main/resources/plugins.config` basically defines where in the *Plugins* menu of ImageJ the 
 plugin will appear. The relevant entry for the JCuda example plugin is this:
 
-    Plugins>multiGPU_DeconJ, "Run Auto_LF_Deconvolution...", Auto_LF_Deconvolution("run")
-    Plugins>multiGPU_DeconJ, "Run ImageRectification...", ImageRectification("run")
+    Plugins>AutoDeconJ, "Run Auto_LF_Deconvolution...", Auto_LF_Deconvolution("run")
+    Plugins>AutoDeconJ, "Run ImageRectification...", ImageRectification("run")
     
 The first part defines the menu structure. The last part, `Auto_LF_Deconvolution`,
 defines the *class name* of the plugin implementation.
-
- 
-
-    
