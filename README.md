@@ -31,9 +31,11 @@ In order to build the ptx file for java corresponding to the version of CUDA, ch
 project and execute
 
 On linux
+
     ./build_cuda.sh
 
 On Windows
+
     ./build_cuda.bat
 
 ## Building the plugin JAR
