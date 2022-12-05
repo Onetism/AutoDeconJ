@@ -771,6 +771,7 @@ public class Auto_LF_Deconvolution implements PlugIn {
 			boolean perstore = Prefs.get("Auto_LF_Deconvolution.storperiter", false);
 			String outputName = Prefs.get("Auto_LF_Deconvolution.outputName", "Iter");
 			boolean is_Showper_result = Prefs.get("Auto_LF_Deconvolution.is_Showper_result", false);
+			int Nnum = (int) Prefs.get("Auto_LF_Deconvolution.nNnum", 15);
 
 			Pointer tempadd = new Pointer();
 			cudaMalloc(tempadd, image_size[0]*image_size[1]*Sizeof.FLOAT);
@@ -974,8 +975,8 @@ public class Auto_LF_Deconvolution implements PlugIn {
 						}
 	
 						DCTEntropy dct_calculate = new DCTEntropy(output_w, output_h, dz_pixels.clone());
-						dct_value[iter] = dct_calculate.compute((float)npfsupportdiameter);
-						if(iter != 0 && dct_value[iter] - dct_value[iter-1] < 0){
+						dct_value[iter] = dct_calculate.compute((float)(npfsupportdiameter*Nnum/2));
+						if(iter != 0 && dct_value[iter] - dct_value[iter-1] < 10e-6){
 							synchronized(Thread_syn.lock){
 								findbest = true;
 								Thread_syn.threadnum = Thread_syn.totalnum;
