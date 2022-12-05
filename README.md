@@ -7,6 +7,8 @@ Changqing Su, Yuhan Gao, You Zhou, Yaoqi Sun, Chenggang Yan, Haibing Yin, Bo Xio
 
 Light-field microscopy (LFM) is a compact solution to high-speed 3D fluorescence imaging. Usually, we need to do 3D deconvolution to the captured raw data. Although there are deep neural network methods that can accelerate the reconstruction process, the model is not universally applicable for all system parameters. Here, we develop AutoDeconJ, a GPU-accelerated ImageJ plugin for 4.4× faster and more accurate deconvolution of LFM data. We further propose an image quality metric for the deconvolution process, aiding in automatically determining the optimal number of iterations with higher reconstruction accuracy and fewer artifacts.
 
+<img src="https://github.com/Onetism/AutoDeconJ/blob/main/AutoDeconJ.png" width="600" /> 
+
 # Installation
 ## Cloning the repository
 
