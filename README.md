@@ -1,6 +1,6 @@
 # AutoDeconJ: a GPU-accelerated ImageJ plugin for 3D light-field deconvolution with optimal iteration numbers predicting
 
-**[Paer](https://nerfmm.active.vision/)|[User maunual](https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/bioinformatics/PAP/10.1093_bioinformatics_btac760/2/btac760_supplementary_data.zip?Expires=1673249503&Signature=fEoHQOkTfkO2u5c5Qcmow-vzfD3EfLMgIVVsEC-Joo4aD8CnvckZ0FqJSpqpkENz2lvqkTsBIcgJZS5rdE4SMRGGm5UsYSenrchkAN0ttcdtJmxb~bTK8A3qFNG1dhO~0lM5XNxl1mqk-s0C9L~JHaHdOK3bFQSyiVHGz~4xyP4tGQ8aADkJmI0Ko3adPzSyxl5Fp8AooPlAbj3GBVsF4lT0pXW-DcxuJ6eBRBVID~mBB5pWlt9zXwcgC2eaS3FOqxUcTLfE8cTxTkzfK5kkfLgoReWjBMOlb7mVEHwxLX0KQn2uyNxpCqsFNvyn3AK3GM1amOwiatlYxbax8GXydA__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA)**
+**[Paer]([https://nerfmm.active.vision/](https://academic.oup.com/bioinformatics/article/39/1/btac760/6849514))|[User maunual](https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/bioinformatics/PAP/10.1093_bioinformatics_btac760/2/btac760_supplementary_data.zip?Expires=1673249503&Signature=fEoHQOkTfkO2u5c5Qcmow-vzfD3EfLMgIVVsEC-Joo4aD8CnvckZ0FqJSpqpkENz2lvqkTsBIcgJZS5rdE4SMRGGm5UsYSenrchkAN0ttcdtJmxb~bTK8A3qFNG1dhO~0lM5XNxl1mqk-s0C9L~JHaHdOK3bFQSyiVHGz~4xyP4tGQ8aADkJmI0Ko3adPzSyxl5Fp8AooPlAbj3GBVsF4lT0pXW-DcxuJ6eBRBVID~mBB5pWlt9zXwcgC2eaS3FOqxUcTLfE8cTxTkzfK5kkfLgoReWjBMOlb7mVEHwxLX0KQn2uyNxpCqsFNvyn3AK3GM1amOwiatlYxbax8GXydA__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA)**
 
 Changqing Su, Yuhan Gao, You Zhou, Yaoqi Sun, Chenggang Yan, Haibing Yin, Bo Xiong
 
